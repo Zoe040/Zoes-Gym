@@ -1,5 +1,5 @@
 // Offline-Cache: App-Dateien werden beim ersten Besuch gespeichert, danach läuft die App auch ohne Netz.
-const CACHE = 'zoes-gym-v5';
+const CACHE = 'zoes-gym-v6';
 const SHELL = ['./', './index.html', './manifest.webmanifest', './icons/icon-192.png', './icons/icon-180.png'];
 self.addEventListener('install', e => { e.waitUntil(caches.open(CACHE).then(c => c.addAll(SHELL))); self.skipWaiting(); });
 self.addEventListener('activate', e => {

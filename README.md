@@ -9,6 +9,7 @@ Installierbare Web-App für Training, Geräte, Pläne und Fortschritt. Keine Abh
 - `manifest.webmanifest` – Name, Farben, Icons
 - `sw.js` – Offline-Cache
 - `icons/` – App-Icons
+- `img/ex/` – Übungsfotos (Start- und Endposition)
 - `build.py` – baut `index.html` aus `app.html`
 
 ## Lokal testen
@@ -33,3 +34,9 @@ Dann http://localhost:8000 öffnen.
 Daten liegen pro Gerät im Browser. Backup unter Plan → Daten.
 
 Nach Änderungen an `app.html`: `python3 build.py` ausführen. Das erzeugt `index.html` neu und zählt die Cache-Version in `sw.js` hoch.
+
+## Quellen und Lizenzen
+
+- Übungsfotos: [free-exercise-db](https://github.com/yuhonas/free-exercise-db), gemeinfrei (Unlicense), verkleinert.
+- Körpergrafik der Muskelkarte: Polygondaten aus [react-body-highlighter](https://github.com/GV79/react-body-highlighter), MIT-Lizenz, Copyright (c) 2020 GV79. Die Lizenz erlaubt Nutzung und Änderung, solange dieser Hinweis erhalten bleibt.
+- Texte zur Ausführung: eigene Zusammenfassung nach ACE, NASM, NSCA und Studien zu den Varianten.
