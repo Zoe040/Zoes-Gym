@@ -216,6 +216,8 @@ a{color:var(--accent)}
 .wrow.ok .wl input,.wrow.ok .wlev{background:color-mix(in srgb,var(--good) 14%,var(--sunk));border-color:color-mix(in srgb,var(--good) 45%,var(--line))}
 .wrow.ok .check{background:var(--good);border-color:var(--good);color:var(--surface)}
 .wdel{padding:0 8px}
+.pbar{height:6px;border-radius:99px;background:var(--line);overflow:hidden;margin:10px 0 4px}.pbar i{display:block;height:100%;background:var(--accent);transition:width .2s}
+#packHome .chips{margin-bottom:10px;flex-wrap:wrap}
 .packrow{display:flex;align-items:center;gap:12px;width:100%;min-height:48px;padding:6px 0;border:0;border-bottom:1px solid var(--line);background:none;text-align:left;cursor:pointer;font-size:1rem}
 .packrow:last-child{border-bottom:0}
 .packrow .box{width:28px;height:28px;flex:none;border-radius:8px;border:2px solid var(--line);display:grid;place-items:center;color:transparent}
@@ -559,9 +561,17 @@ function defaultPacks(){
   return [mk('Nur Training',base),mk('Mit Duschen',base.concat(dusch)),mk('Danach Arbeit',base.concat(arbeit)),mk('Duschen und Arbeit',base.concat(dusch,arbeit)),mk('Danach Uni',base.concat(uni))]}
 const packById=id=>S.packs.find(p=>p.id===id);
 // Welche Liste zeigt Heute? Die des nächsten geplanten Termins, sonst die zuletzt benutzte
-function currentPack(){const n=nextPlanned();const id=(n&&n.ev.packId)||S.settings.packLast;return packById(id)||S.packs[0]||null}
-function packCard(){const pk=currentPack();if(!pk)return '';const n=pk.items.filter(i=>i.ok).length;
-  return '<div class="section"><h2>Packliste</h2><button class="card bodyrow" data-act="packOpen" data-v="'+pk.id+'"><span class="grow"><b>'+esc(pk.name)+'</b><span class="meta">'+(n===pk.items.length&&n?'Alles eingepackt':n+' von '+pk.items.length+' eingepackt')+'</span></span><span class="go">Öffnen ›</span></button></div>'}
+// Reihenfolge: eben auf Heute gewählt > Liste des nächsten Termins > zuletzt benutzt
+function currentPack(){const n=nextPlanned();const id=(packById(S.settings.packPick)&&S.settings.packPick)||(n&&n.ev&&n.ev.packId)||S.settings.packLast;return packById(id)||S.packs[0]||null}
+function packCard(){const pk=currentPack();if(!pk)return '';const n=pk.items.filter(i=>i.ok).length,m=pk.items.length,all=!!ui.packAll;
+  const rows=pk.items.filter(it=>all||!it.ok);
+  return '<div class="section" id="packHome"><div class="spread"><h2>Packliste</h2><button class="btn sm ghost" data-act="packEditOpen" data-v="'+pk.id+'">Bearbeiten</button></div>'+
+  '<div class="chips" aria-label="Welche Liste brauchst du?">'+S.packs.map(p=>'<button class="chip'+(p.id===pk.id?' on':'')+'" data-act="packPick" data-v="'+p.id+'" aria-pressed="'+(p.id===pk.id)+'">'+esc(p.name)+'</button>').join('')+'</div>'+
+  '<div class="card"><div class="spread"><span class="small muted" id="packHomeCount">'+n+' von '+m+' eingepackt</span>'+(n?'<button class="btn sm ghost" data-act="packReset" data-v="'+pk.id+'">Zurücksetzen</button>':'')+'</div>'+
+  '<div class="pbar" aria-hidden="true"><i id="packHomeBar" style="width:'+(m?Math.round(n/m*100):0)+'%"></i></div>'+
+  (m?(rows.length?rows.map(it=>'<button class="packrow'+(it.ok?' ok':'')+'" data-act="packTick" data-pk="'+pk.id+'" data-v="'+it.id+'" aria-pressed="'+it.ok+'"><span class="box">'+IC.check+'</span><span>'+esc(it.t)+'</span></button>').join(''):'<p class="empty" style="padding:12px 0">Alles eingepackt. Viel Spaß!</p>')+
+   (n&&n<m||all&&n?'<button class="btn sm ghost" data-act="packShowAll" style="margin-top:6px">'+(all?'Nur offene zeigen':'Eingepackte anzeigen ('+n+')')+'</button>':n===m?'<button class="btn sm ghost" data-act="packShowAll" style="margin-top:6px">Liste anzeigen</button>':'')
+   :'<p class="empty" style="padding:12px 0">Noch leer. Über „Bearbeiten“ Sachen hinzufügen.</p>')+'</div></div>'}
 function packSheet(id,keep){const pk=packById(id)||S.packs[0];if(!pk)return;ui.packId=pk.id;S.settings.packLast=pk.id;save();
   const n=pk.items.filter(i=>i.ok).length,ed=!!ui.packEdit;
   const html='<div class="spread"><h2 class="sheet-h">Packliste</h2><button class="btn sm" data-act="packEditToggle">'+(ed?'Fertig':'Bearbeiten')+'</button></div>'+
@@ -758,10 +768,10 @@ function vPlan(){
   '<div class="field"><span>Darstellung</span><div class="seg seg3" role="radiogroup" aria-label="Darstellung">'+[['auto','Automatisch'],['light','Hell'],['dark','Dunkel']].map(([k,l])=>'<button role="radio" aria-checked="'+((S.settings.theme||'auto')===k)+'" class="'+((S.settings.theme||'auto')===k?'on':'')+'" data-act="theme" data-v="'+k+'">'+l+'</button>').join('')+'</div><span class="small" style="font-weight:400">Automatisch folgt der Einstellung deines iPhones oder Macs.</span></div>'+
   '<div class="grid2"><label class="field">Wochenziel (Trainings)<input id="setGoal" inputmode="numeric" value="'+S.settings.goal+'"></label><label class="field">Standard-Pause (Sek.)<input id="setRest" inputmode="numeric" value="'+S.settings.rest+'"></label></div><label class="row small" style="font-weight:600"><input type="checkbox" id="setSound" style="width:22px;min-height:22px"'+(S.settings.sound!==false?' checked':'')+'> Ton, wenn die Pause vorbei ist</label></div>'+
   '<div class="section"><div class="spread"><h2>Trainingspläne</h2><button class="btn sm" data-act="planEdit" data-v="">+ Neuer Plan</button></div>'+S.plans.map(p=>'<div class="card stack"><div class="spread"><h3>'+esc(p.name)+'</h3><button class="btn sm" data-act="planEdit" data-v="'+p.id+'">Bearbeiten</button></div>'+((p.warmup||[]).length?'<p class="small muted" style="margin:0"><b>Aufwärmen:</b> '+esc(p.warmup.map(w=>{const e=exById(w.exId);return e?e.name+' '+nf(w.val)+(warmMode(e)==='zeit'?' Min.':''):''}).filter(Boolean).join(' · '))+'</p>':'')+'<div class="tablewrap"><table class="hist"><tbody>'+p.items.map(it=>'<tr><td>'+esc((exById(it.exId)||{name:'?'}).name)+'</td><td class="n">'+it.sets+' × '+it.repMin+'–'+it.repMax+'</td><td class="n muted">'+it.rest+' s</td></tr>').join('')+'</tbody></table></div></div>').join('')+'</div>'+
-  '<div class="section"><h2>Packlisten</h2><button class="card bodyrow" data-act="packOpen" data-v="'+((S.packs[0]||{}).id||'')+'"><span class="grow"><b>'+S.packs.length+' Listen</b><span class="meta">'+esc(S.packs.map(p=>p.name).join(' · '))+'</span></span><span class="go">Öffnen ›</span></button></div>'+
+  '<div class="section"><h2>Packlisten</h2><button class="card bodyrow" data-act="packOpen" data-v="'+((currentPack()||{}).id||'')+'"><span class="grow"><b>'+S.packs.length+' Listen</b><span class="meta">'+esc(S.packs.map(p=>p.name).join(' · '))+'</span></span><span class="go">Öffnen ›</span></button></div>'+
   '<div class="section"><h2>Körper</h2><button class="card bodyrow" data-act="bodyOpen"><span class="grow"><b>Gewicht und Umfänge</b><span class="meta">'+(bodyStats()?'Ø 7 Tage '+nf(bodyStats().now)+' kg':'Noch keine Einträge')+'</span></span><span class="go">Öffnen ›</span></button></div>'+
   '<div class="section"><h2>Daten</h2><div class="card stack"><p style="margin:0" class="small muted">Alles liegt nur auf diesem Gerät im Browser. Sichere es regelmäßig, damit nichts verloren geht und du es auf dem Mac oder iPhone wieder einspielen kannst. '+(S.settings.lastBackup?'Letztes Backup: '+fmtDate(S.settings.lastBackup)+'.':'Noch kein Backup.')+'</p>'+(IN_FRAME?'<button class="btn" data-act="exportText">Backup als Text zeigen</button>':'<div class="grid2"><button class="btn" data-act="export">Backup speichern</button><button class="btn" data-act="exportText">Als Text zeigen</button></div>')+'<div class="grid2"><button class="btn" data-act="csv">Tabelle (CSV)</button><button class="btn" data-act="mdAll">Obsidian (Markdown)</button></div>'+'<label class="btn" for="importFile" style="cursor:pointer">Backup-Datei laden<input type="file" id="importFile" accept="application/json,.json" hidden></label><button class="btn ghost" data-act="importText">Backup-Text einfügen</button><button class="btn danger" data-act="resetAsk">Alles auf Beispiel zurücksetzen</button></div></div>'+
-  '<p class="muted small" style="margin-top:24px">Zoes Gym · v0.8 · '+S.sessions.length+' Trainings gespeichert</p>';
+  '<p class="muted small" style="margin-top:24px">Zoes Gym · v0.8.1 · '+S.sessions.length+' Trainings gespeichert</p>';
 }
 function planEdit(id){
   const p=id?JSON.parse(JSON.stringify(planById(id))):{id:'',name:'',items:[]};
@@ -882,7 +892,7 @@ function finishWorkout(minutes,feel){
   const s={id:A.id,date:A.date,planId:A.planId,name:A.name,start:A.start,minutes:minutes||1,feel:feel||null,entries,note:A.note||''};if(warm.length)s.warmup=warm;
   const wasEdit=!!A.editingId;ui.reopen=snapUndo();
   if(wasEdit){const i=S.sessions.findIndex(x=>x.id===A.editingId);if(i>=0)S.sessions[i]=s;else S.sessions.push(s)}else S.sessions.push(s);
-  S.active=null;timer=null;drawTimer();if(!wasEdit)S.packs.forEach(pk=>pk.items.forEach(i=>i.ok=false));save();syncWake();
+  S.active=null;timer=null;drawTimer();if(!wasEdit){S.packs.forEach(pk=>pk.items.forEach(i=>i.ok=false));delete S.settings.packPick;ui.packAll=false}save();syncWake();
   if(wasEdit){go('kalender');toast('Training aktualisiert',ui.reopen);return}
   const newPRs=prEvents().filter(p=>p.date===s.date&&s.entries.some(e=>e.exId===p.exId));
   go('heute');
@@ -941,14 +951,17 @@ document.addEventListener('click',ev=>{
     case 'wDel':{const u=snapUndo();A.warmup.splice(+v,1);save();render();toast('Aufwärmübung entfernt',u);break}
     case 'wAddAsk':openSheet('<h2>Aufwärmübung hinzufügen</h2>'+['Cardio','Mobilität'].map(k=>{const l=warmEx().filter(e=>e.kind===k);return l.length?'<div class="eyebrow">'+(k==='Cardio'?'Puls hoch (Cardio)':'Beweglich machen')+'</div><div class="card">'+l.map(e=>'<button class="listrow" data-act="wAdd" data-v="'+e.id+'"><span class="grow"><span class="name">'+esc(e.name)+'</span><br><span class="meta">'+(warmMode(e)==='zeit'?warmDef(e)+' Min.':warmDef(e)+' Wdh.')+' · '+esc(e.muscle)+'</span></span><span class="chev">+</span></button>').join('')+'</div>':''}).join('')+(warmEx().length?'':'<p class="empty">Keine Aufwärmübungen vorhanden. Lege unter Geräte eine mit der Art „Cardio“ oder „Mobilität“ an.</p>')+'<button class="btn block" data-act="close">Abbrechen</button>');break;
     case 'wAdd':{const e=exById(v);A.warmup=A.warmup||[];A.warmup.push({exId:v,mode:warmMode(e),target:warmDef(e),val:warmDef(e),level:'',done:false});closeSheet();save();render();break}
-    case 'packOpen':ui.packEdit=false;packSheet(v,inSheet());break;
+    case 'packOpen':ui.packEdit=false;if(v&&inSheet()){S.settings.packPick=v}packSheet(v,inSheet());render();break;
+    case 'packEditOpen':ui.packEdit=true;packSheet(v);break;
+    case 'packPick':S.settings.packPick=v;S.settings.packLast=v;ui.packAll=false;save();render();{const c=$('#packHome .chip.on');if(c&&c.scrollIntoView)c.scrollIntoView({inline:'nearest',block:'nearest'})}break;
+    case 'packShowAll':ui.packAll=!ui.packAll;render();break;
     case 'packEditToggle':ui.packEdit=!ui.packEdit;packSheet(ui.packId,true);render();break;
-    case 'packTick':{const pk=packById(ui.packId),it=pk&&pk.items.find(i=>i.id===v);if(!it)break;it.ok=!it.ok;save();b.classList.toggle('ok',it.ok);b.setAttribute('aria-pressed',it.ok);const n=pk.items.filter(i=>i.ok).length;const c=$('#packCount');if(c)c.textContent=n+' von '+pk.items.length+' eingepackt';if(n===pk.items.length)toast('Alles eingepackt. Viel Spaß!');render();break}
-    case 'packReset':{const pk=packById(ui.packId);pk.items.forEach(i=>i.ok=false);save();packSheet(pk.id,true);render();break}
+    case 'packTick':{const home=!!b.dataset.pk&&!inSheet(),pk=packById(b.dataset.pk||ui.packId),it=pk&&pk.items.find(i=>i.id===v);if(!it)break;it.ok=!it.ok;save();b.classList.toggle('ok',it.ok);b.setAttribute('aria-pressed',it.ok);const n=pk.items.filter(i=>i.ok).length;const c=$('#packCount');if(c)c.textContent=n+' von '+pk.items.length+' eingepackt';const hc=$('#packHomeCount');if(hc)hc.textContent=n+' von '+pk.items.length+' eingepackt';const hb=$('#packHomeBar');if(hb)hb.style.width=Math.round(n/pk.items.length*100)+'%';if(n===pk.items.length)toast('Alles eingepackt. Viel Spaß!');if(!home)render();break}
+    case 'packReset':{const pk=packById(v||ui.packId),u=JSON.stringify(pk.items);pk.items.forEach(i=>i.ok=false);save();if(inSheet())packSheet(pk.id,true);render();toast('Haken zurückgesetzt',()=>{pk.items=JSON.parse(u);save();if(inSheet())packSheet(pk.id,true);render()});break}
     case 'packAdd':{const t=$('#packAddIn').value.trim();if(!t){toast('Bitte einen Eintrag eingeben');break}const pk=packById(ui.packId);pk.items.push({id:uid(),t,ok:false});save();packSheet(pk.id,true);render();const i=$('#packAddIn');if(i)i.focus();break}
     case 'packDel':{const pk=packById(ui.packId),u=JSON.stringify(pk.items);pk.items=pk.items.filter(i=>i.id!==v);save();packSheet(pk.id,true);render();toast('Eintrag entfernt',()=>{pk.items=JSON.parse(u);save();packSheet(pk.id,true);render()});break}
     case 'packNew':{const pk={id:uid(),name:'Neue Liste',items:[]};S.packs.push(pk);save();ui.packEdit=true;packSheet(pk.id,true);render();const n=$('#packName');if(n){n.focus();n.select()}break}
-    case 'packDelList':{const u=JSON.stringify(S.packs);S.packs=S.packs.filter(p=>p.id!==v);S.planned.forEach(e=>{if(e.packId===v)delete e.packId});save();ui.packEdit=false;packSheet(S.packs[0].id,true);render();toast('Liste gelöscht',()=>{S.packs=JSON.parse(u);save();render()});break}
+    case 'packDelList':{const u=JSON.stringify(S.packs);S.packs=S.packs.filter(p=>p.id!==v);S.planned.forEach(e=>{if(e.packId===v)delete e.packId});if(S.settings.packPick===v)delete S.settings.packPick;save();ui.packEdit=false;packSheet(S.packs[0].id,true);render();toast('Liste gelöscht',()=>{S.packs=JSON.parse(u);save();render()});break}
     case 'calPack':ui.calDraft.packId=v||null;document.querySelectorAll('#calPacks .chip').forEach(c=>c.classList.toggle('on',c.dataset.v===v));break;
     case 'undo':{const f=undoFn;$('#toast').hidden=true;undoFn=null;f&&f();break}
     case 'overview':ui.trainOverview=true;pushNav(false);render();window.scrollTo(0,0);break;
